@@ -56,7 +56,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: erp/backend
-        run: npm ci
+        run: npm install
 
       # Node.js backends don't need a build step
       # Just verify dependencies install correctly
