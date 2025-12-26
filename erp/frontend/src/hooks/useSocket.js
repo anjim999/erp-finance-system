@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 // Socket.io connects directly to ERP backend (not through gateway)
 // Gateway is HTTP-only proxy, can't handle WebSocket upgrades easily
-const VITE_SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5001';
+const SOCKET_URL = import.meta.env.VITE_ERP_SOCKET_URL || 'http://localhost:5001';
 
 export function useSocket() {
     const { auth } = useAuth();
@@ -31,7 +31,7 @@ export function useSocket() {
         }
 
         try {
-            const socket = io(VITE_SOCKET_URL, {
+            const socket = io(SOCKET_URL, {
                 auth: { token: auth.token },
                 transports: ['polling', 'websocket'],  // Polling first = fewer warnings
                 reconnection: true,
