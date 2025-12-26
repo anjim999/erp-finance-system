@@ -1,0 +1,117 @@
+# Vyapar360 CI Pipeline
+# Validates builds on Pull Requests and pushes to dev/main
+
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  # ============================================
+  # ERP Frontend Build Validation
+  # ============================================
+  build-erp-frontend:
+    name: Build ERP Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: erp/frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: erp/frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: erp/frontend
+        run: npm run build
+
+  # ============================================
+  # ERP Backend Build Validation
+  # ============================================
+  build-erp-backend:
+    name: Build ERP Backend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: erp/backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: erp/backend
+        run: npm ci
+
+      # Node.js backends don't need a build step
+      # Just verify dependencies install correctly
+      - name: Verify startup (syntax check)
+        working-directory: erp/backend
+        run: node --check src/index.js
+
+  # ============================================
+  # Gateway Build Validation
+  # ============================================
+  build-gateway:
+    name: Build Gateway
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: gateway/package-lock.json
+
+      - name: Install dependencies
+        working-directory: gateway
+        run: npm ci
+
+      - name: Verify startup (syntax check)
+        working-directory: gateway
+        run: node --check src/index.js
+
+  # ============================================
+  # Teams Backend Build Validation
+  # ============================================
+  build-teams-backend:
+    name: Build Teams Backend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: teams/backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: teams/backend
+        run: npm ci
+
+      - name: Verify startup (syntax check)
+        working-directory: teams/backend
+        run: node --check src/index.js
