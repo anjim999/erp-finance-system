@@ -15,7 +15,8 @@ const allowedOrigins = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:3000",
-    "https://vyapar360.vercel.app"
+    "https://vyapar360.vercel.app",
+    "https://vyapar360-mz39.vercel.app"
 ];
 
 app.use(cors({
