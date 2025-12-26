@@ -4,7 +4,7 @@ import Navbar from "./components/Navbar.jsx";
 import Sidebar from "./components/layout/Sidebar.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { HelpButton } from "./components/common";
-import Chat from "../../../teams/frontend/src/components/Chat.jsx";
+import Chat from "./components/chat/Chat.jsx";
 
 import LoginPage from "./pages/auth/LoginPage.jsx";
 import RegisterPage from "./pages/auth/RegisterPage.jsx";
@@ -49,7 +49,7 @@ import { LeadsPage, ContactRequestsPage, CustomersPage as CRMCustomersPage } fro
 
 // Test Pages
 import SocketTestPage from "./pages/SocketTestPage.jsx";
-import TeamsPage from "../../../teams/frontend/src/pages/TeamsPage.jsx";
+import TeamsPage from "./pages/teams/TeamsPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import CalendarPage from "./pages/CalendarPage.jsx";
 

@@ -1,14 +1,14 @@
-// src/hooks/useSocket.js - Socket.io React Hook
+// src/hooks/chat/useTeamsSocket.js - Socket.io React Hook for Teams Chat
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { useAuth } from '../../../../erp/frontend/src/context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 // Socket.io connects directly to Teams backend (not through gateway)
 // Gateway is HTTP-only proxy, can't handle WebSocket upgrades easily
 // Auto-detect production vs development
 const isProduction = window.location.hostname !== 'localhost';
-const SOCKET_URL = isProduction 
-    ? 'https://vyapar360-teams.onrender.com' 
+const SOCKET_URL = isProduction
+    ? 'https://vyapar360-teams.onrender.com'
     : (import.meta.env.VITE_TEAMS_SOCKET_URL || 'http://localhost:5002');
 
 export function useSocket() {

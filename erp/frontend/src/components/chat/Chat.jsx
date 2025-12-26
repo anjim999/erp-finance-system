@@ -1,9 +1,9 @@
-// src/components/Chat.jsx - Real-time Chat Component
+// src/components/chat/Chat.jsx - Real-time Chat Component
 import { useState, useEffect, useRef } from 'react';
 import { FaPaperPlane, FaComments, FaTimes, FaPlus, FaUsers } from 'react-icons/fa';
-import { useAuth } from '../../../../erp/frontend/src/context/AuthContext';
-import { useSocket } from '../hooks/useSocket';
-import api from '../../../../erp/frontend/src/api/axiosClient';
+import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../hooks/chat/useTeamsSocket';
+import api from '../../api/axiosClient';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function Chat() {
