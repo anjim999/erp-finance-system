@@ -1,4 +1,7 @@
 // Gateway - API Gateway for Vyapar360 Microservices
+// IMPORTANT: Sentry must be imported FIRST before all other imports
+import './instrument.js';
+import * as Sentry from '@sentry/node';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -202,6 +205,18 @@ app.use("/uploads", createProxyMiddleware({
     changeOrigin: true,
     pathRewrite: (path) => '/uploads' + path
 }));
+
+// ============================================
+// SENTRY DEBUG ENDPOINT (for testing)
+// ============================================
+app.get("/debug-sentry", function mainHandler(req, res) {
+    throw new Error("Sentry test error from Gateway!");
+});
+
+// ============================================
+// SENTRY ERROR HANDLER (must be before other error handlers)
+// ============================================
+Sentry.setupExpressErrorHandler(app);
 
 // ============================================
 // 404 HANDLER
