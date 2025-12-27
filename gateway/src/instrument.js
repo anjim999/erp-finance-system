@@ -19,6 +19,6 @@ Sentry.init({
     profilesSampleRate: 0.1,
 });
 
-console.log('[SENTRY] ✅ Error monitoring initialized');
+console.log('[SENTRY] ✅ Monitoring initialized');
 
 export default Sentry;
