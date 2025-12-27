@@ -6,9 +6,9 @@ frontend/node_modules/
 
 
 # Env files
-.env
-backend/.env
-frontend/.env
+# .env
+# backend/.env
+# frontend/.env
 
 # # SQLite databases
 # *.db

@@ -10,17 +10,20 @@ dotenv.config({
   path: path.join(__dirname, "..", "..", ".env"),
 });
 
+const isNeonOrSupabase = process.env.DATABASE_URL?.includes('neon') || process.env.DATABASE_URL?.includes('supabase');
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Connection pool settings - production optimized
-  max: 50, // Maximum connections (adjust based on DB limits)
-  min: 5, // Keep 5 connections alive for faster response
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
+  // Connection pool settings - optimized for Neon serverless
+  max: isNeonOrSupabase ? 10 : 50, // Neon free tier has connection limits
+  min: isNeonOrSupabase ? 0 : 2, // Don't hold minimum connections for serverless (they timeout)
+  idleTimeoutMillis: isNeonOrSupabase ? 10000 : 30000, // Release idle connections faster for serverless
   connectionTimeoutMillis: 20000, // Wait up to 20s for available connection
-  // For Neon/Supabase serverless
-  ssl: process.env.DATABASE_URL?.includes('neon') || process.env.DATABASE_URL?.includes('supabase')
-    ? { rejectUnauthorized: false }
-    : false,
+  // Keepalive settings - critical for Neon serverless
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000, // Start keepalive pings after 10s idle
+  // For Neon/Supabase serverless SSL
+  ssl: isNeonOrSupabase ? { rejectUnauthorized: false } : false,
 });
 
 // Connection monitoring (helps diagnose production issues)
@@ -53,13 +56,21 @@ pool.on('error', (err, client) => {
   });
 });
 
-// Log pool status every 30 seconds (helps catch leaks early)
-setInterval(() => {
+// Proactive connection health check - critical for Neon serverless
+// This keeps connections alive and detects issues before user requests
+setInterval(async () => {
+  try {
+    // Simple query to keep connection alive
+    await pool.query('SELECT 1');
+  } catch (error) {
+    console.error('❌ Database health check failed:', error.message);
+  }
+  
   if (pool.waitingCount > 0) {
     console.warn(`⚠️ ${pool.waitingCount} clients waiting for connection!`);
     console.warn(`Pool: Total=${pool.totalCount}, Idle=${pool.idleCount}, Waiting=${pool.waitingCount}`);
   }
-}, 30000);
+}, 60000); // Check every 60 seconds
 
 // Enhanced query function with auto-retry and timeout
 export async function query(text, params, retries = 2) {

@@ -12,8 +12,8 @@ export const PORT = process.env.GATEWAY_PORT || 5000;
 export const JWT_SECRET = process.env.JWT_SECRET;
 
 // Backend service URLs
-export const ERP_BACKEND_URL = process.env.ERP_BACKEND_URL || "http://localhost:5001";
-export const TEAMS_BACKEND_URL = process.env.TEAMS_BACKEND_URL || "http://localhost:5002";
+export const ERP_BACKEND_URL = process.env.ERP_BACKEND_URL || "http://127.0.0.1:5001";
+export const TEAMS_BACKEND_URL = process.env.TEAMS_BACKEND_URL || "http://127.0.0.1:5002";
 
 // Upstash Redis (Caching)
 export const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL;

@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import { useAuth } from '../../context/AuthContext';
 
 // Socket.io connects directly to Teams backend
-const SOCKET_URL = import.meta.env.VITE_TEAMS_SOCKET_URL || 'https://vyapar360-teams.onrender.com';
+const SOCKET_URL = import.meta.env.VITE_TEAMS_SOCKET_URL;
 
 console.log('[TeamsSocket] SOCKET_URL:', SOCKET_URL);
 

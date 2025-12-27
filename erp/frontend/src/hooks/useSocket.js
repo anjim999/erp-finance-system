@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 
 // Socket.io connects directly to ERP backend
-const SOCKET_URL = import.meta.env.VITE_ERP_SOCKET_URL || 'https://vyapar360-erp.onrender.com';
+const SOCKET_URL = import.meta.env.VITE_ERP_SOCKET_URL;
 
 console.log('[ERPSocket] SOCKET_URL:', SOCKET_URL);
 

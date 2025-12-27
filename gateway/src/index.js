@@ -48,7 +48,7 @@ app.use(cors({
 }));
 
 app.use(morgan("dev"));
-app.use(express.json()); // Required for cached proxy to handle POST body
+// app.use(express.json()); // REMOVED: Global json parsing causes proxy hanging. Applied only to routes that need it.
 
 // Debug middleware - log all requests
 app.use((req, res, next) => {
@@ -139,6 +139,9 @@ const attachUserHeaders = (req, res, next) => {
 // ============================================
 // Helper to create proxy with path preservation
 // ============================================
+// ============================================
+// Helper to create proxy with path preservation
+// ============================================
 const createERPProxy = (mountPath) => {
     return createProxyMiddleware({
         target: ERP_BACKEND_URL,
@@ -163,26 +166,60 @@ const createTeamsProxy = (mountPath) => {
 };
 
 // ============================================
-// PUBLIC ROUTES (No auth - proxy directly)
+// PUBLIC ROUTES
 // ============================================
 
-// Auth routes - no authentication needed, but rate limited to prevent brute force
-app.use("/api/auth", authLimiter, (req, res, next) => {
-    console.log(`[GATEWAY] Proxying auth request: ${req.method} /api/auth${req.url}`);
-    next();
-}, createERPProxy("/api/auth"));
+// Auth routes - Manual proxy to avoid streaming issues
+app.use("/api/auth", authLimiter, express.json(), async (req, res) => {
+    // Strip the mount point prefix if needed, or use req.url if it excludes mount point
+    // express app.use strips the mount path from req.url
+    // So if request is /api/auth/login, req.url is /login
+    const url = `${ERP_BACKEND_URL}/api/auth${req.url}`;
+    console.log(`[GATEWAY] Manual Proxy to: ${url}`);
+
+    try {
+        const options = {
+            method: req.method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        };
+
+        if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
+            options.body = JSON.stringify(req.body);
+        }
+
+        const response = await fetch(url, options);
+
+        // Forward status
+        res.status(response.status);
+
+        // Forward response headers
+        response.headers.forEach((value, key) => {
+            res.setHeader(key, value);
+        });
+
+        // Forward body
+        const data = await response.json();
+        res.json(data);
+
+    } catch (error) {
+        console.error('[GATEWAY] Auth Proxy Error:', error);
+        res.status(502).json({ message: 'Auth Service Unavailable' });
+    }
+});
 
 // Companies routes - PUBLIC with CACHING
-// GET /api/companies/public, /api/companies/public/:slug, /industries, /cities are cached
-app.use("/api/companies/public", createCompaniesPublicCachedProxy(ERP_BACKEND_URL));
-app.use("/api/companies/industries", createCompaniesPublicCachedProxy(ERP_BACKEND_URL));
-app.use("/api/companies/cities", createCompaniesPublicCachedProxy(ERP_BACKEND_URL));
+// cachedProxy uses 'fetch' and needs req.body parsed for POST requests
+app.use("/api/companies/public", express.json(), createCompaniesPublicCachedProxy(ERP_BACKEND_URL));
+app.use("/api/companies/industries", express.json(), createCompaniesPublicCachedProxy(ERP_BACKEND_URL));
+app.use("/api/companies/cities", express.json(), createCompaniesPublicCachedProxy(ERP_BACKEND_URL));
 
-// Companies routes - PROTECTED (no caching - user-specific data)
+// Companies routes - PROTECTED (proxy directly)
 app.use("/api/companies", authMiddleware, attachUserHeaders, createERPProxy("/api/companies"));
 
-// Marketplace routes - Reviews are cached, other routes need auth
-app.use("/api/marketplace/reviews", createMarketplaceReviewsCachedProxy(ERP_BACKEND_URL));
+// Marketplace routes - Reviews are cached (needs parsing), other routes need auth (proxy directly)
+app.use("/api/marketplace/reviews", express.json(), createMarketplaceReviewsCachedProxy(ERP_BACKEND_URL));
 app.use("/api/marketplace", authMiddleware, attachUserHeaders, createERPProxy("/api/marketplace"));
 
 // ============================================
