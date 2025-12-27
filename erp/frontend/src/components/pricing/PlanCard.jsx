@@ -1,11 +1,10 @@
 // src/components/pricing/PlanCard.jsx
-import { FiCheck, FiX, FiLoader, FiZap, FiStar, FiShield, FiCrown } from 'react-icons/fi';
-
+import { FiCheck, FiX, FiLoader, FiZap, FiStar, FiShield, FiAward } from 'react-icons/fi';
 const planIcons = {
     free: FiZap,
     starter: FiStar,
     professional: FiShield,
-    enterprise: FiCrown
+    enterprise: FiAward
 };
 
 const planColors = {
