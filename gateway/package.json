@@ -9,6 +9,7 @@
         "start": "node src/index.js"
     },
     "dependencies": {
+        "@upstash/redis": "^1.36.0",
         "cors": "^2.8.5",
         "dotenv": "^16.6.1",
         "express": "^4.22.1",
