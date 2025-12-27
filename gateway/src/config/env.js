@@ -8,7 +8,7 @@ dotenv.config({
     path: path.join(__dirname, "..", "..", ".env"),
 });
 
-export const PORT = process.env.GATEWAY_PORT || 5000;
+export const PORT = process.env.PORT || process.env.GATEWAY_PORT;
 export const JWT_SECRET = process.env.JWT_SECRET;
 
 // Backend service URLs
