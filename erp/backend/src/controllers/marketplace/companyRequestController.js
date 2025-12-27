@@ -1,6 +1,7 @@
 // src/controllers/companyRequestController.js
 import pool from "../../db/pool.js";
 import bcrypt from "bcryptjs";
+import { sendCompanyApprovalEmail } from "../../utils/mailer.js";
 
 // User submits company registration request
 export async function submitCompanyRequest(req, res) {
@@ -152,19 +153,36 @@ export async function approveCompanyRequest(req, res) {
 
         await client.query('COMMIT');
 
-        // TODO: Send email notification to user
-        // sendEmail(user.email, "Your company has been approved!", { companyName: company.name });
+        // Send approval email to user
+        let emailSent = false;
+        try {
+            const emailResult = await sendCompanyApprovalEmail({
+                to: user.email,
+                name: user.name,
+                companyName: company.name,
+                approved: true
+            });
+            emailSent = emailResult.success;
+            if (emailSent) {
+                console.log(`✅ Company approval email sent to ${user.email} for ${company.name}`);
+            }
+        } catch (emailErr) {
+            console.error("Failed to send company approval email:", emailErr);
+        }
 
         res.json({
             success: true,
-            message: "Company approved! User can now log in as company_admin.",
+            message: emailSent
+                ? "Company approved! Confirmation email sent to user."
+                : "Company approved! User can now log in as company_admin.",
             data: {
                 company,
                 user: {
                     name: user.name,
                     email: user.email,
                     newRole: 'company_admin'
-                }
+                },
+                emailSent
             }
         });
     } catch (err) {
@@ -182,17 +200,56 @@ export async function rejectCompanyRequest(req, res) {
         const { id } = req.params;
         const { admin_notes } = req.body;
 
-        const result = await pool.query(
-            `UPDATE company_requests SET status = 'rejected', admin_notes = $1, processed_at = NOW() 
-       WHERE id = $2 AND status = 'pending' RETURNING *`,
+        // Get request and user details first
+        const requestResult = await pool.query(
+            `SELECT cr.*, u.email as user_email, u.name as user_name 
+             FROM company_requests cr 
+             LEFT JOIN users u ON cr.user_id = u.id
+             WHERE cr.id = $1`,
+            [id]
+        );
+
+        if (requestResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: "Request not found" });
+        }
+
+        const request = requestResult.rows[0];
+
+        if (request.status !== 'pending') {
+            return res.status(400).json({ success: false, error: "Request already processed" });
+        }
+
+        // Update status
+        await pool.query(
+            `UPDATE company_requests SET status = 'rejected', admin_notes = $1, processed_at = NOW() WHERE id = $2`,
             [admin_notes, id]
         );
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ success: false, error: "Request not found or already processed" });
+        // Send rejection email
+        let emailSent = false;
+        try {
+            const emailResult = await sendCompanyApprovalEmail({
+                to: request.user_email,
+                name: request.user_name,
+                companyName: request.company_name,
+                approved: false,
+                notes: admin_notes
+            });
+            emailSent = emailResult.success;
+            if (emailSent) {
+                console.log(`✅ Company rejection email sent to ${request.user_email}`);
+            }
+        } catch (emailErr) {
+            console.error("Failed to send rejection email:", emailErr);
         }
 
-        res.json({ success: true, message: "Request rejected" });
+        res.json({
+            success: true,
+            message: emailSent
+                ? "Request rejected. Notification email sent to user."
+                : "Request rejected",
+            emailSent
+        });
     } catch (err) {
         console.error("Error:", err);
         res.status(500).json({ success: false, error: "Failed" });

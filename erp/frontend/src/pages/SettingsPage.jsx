@@ -1,10 +1,11 @@
 // src/pages/SettingsPage.jsx - Settings Page
 import { useState, useEffect } from "react";
-import { FaUser, FaBuilding, FaBell, FaPalette, FaShieldAlt, FaSave, FaKey, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaUser, FaBuilding, FaBell, FaPalette, FaShieldAlt, FaSave, FaKey, FaEye, FaEyeSlash, FaCreditCard } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { Card, Input, Textarea, Button, Select } from "../components/common";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import BillingSettings from "../components/settings/BillingSettings";
 import api from "../api/axiosClient";
 
 export default function SettingsPage() {
@@ -90,6 +91,7 @@ export default function SettingsPage() {
     const tabs = [
         { id: "profile", label: "Profile", icon: <FaUser /> },
         { id: "security", label: "Security", icon: <FaShieldAlt /> },
+        { id: "billing", label: "Billing", icon: <FaCreditCard /> },
         { id: "appearance", label: "Appearance", icon: <FaPalette /> },
     ];
 
@@ -117,8 +119,8 @@ export default function SettingsPage() {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === tab.id
-                                            ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600"
-                                            : "theme-text-secondary hover:theme-bg-tertiary"
+                                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600"
+                                        : "theme-text-secondary hover:theme-bg-tertiary"
                                         }`}
                                 >
                                     {tab.icon}
@@ -173,6 +175,8 @@ export default function SettingsPage() {
                             </form>
                         </Card>
                     )}
+
+                    {activeTab === "billing" && <BillingSettings />}
 
                     {activeTab === "appearance" && (
                         <Card title="Appearance Settings" padding="lg">

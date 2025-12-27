@@ -24,6 +24,7 @@ import reviewRoutes from './routes/reviews.js';
 import paymentRoutes from './routes/payments.js';
 import meetingRoutes from './routes/meetings.js';
 import calendarRoutes from './routes/calendar.js';
+import subscriptionRoutes from './routes/subscriptions.js';
 
 // Import middleware
 import authMiddleware, { errorHandler } from './middleware/auth.js';
@@ -95,6 +96,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/meetings", meetingRoutes);
 app.use("/api/calendar", calendarRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
 
 // ============================================
 // STATIC FILES (for uploaded files)

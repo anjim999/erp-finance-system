@@ -52,6 +52,7 @@ import SocketTestPage from "./pages/SocketTestPage.jsx";
 import TeamsPage from "./pages/teams/TeamsPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import CalendarPage from "./pages/CalendarPage.jsx";
+import PricingPage from "./pages/pricing/PricingPage.jsx";
 
 function AppLayout({ children }) {
   return (
@@ -89,6 +90,7 @@ export default function App() {
         {/* MARKETPLACE - Public */}
         <Route path="/marketplace" element={<PublicLayout><MarketplacePage /></PublicLayout>} />
         <Route path="/marketplace/:slug" element={<PublicLayout><CompanyProfilePage /></PublicLayout>} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route path="/register-company" element={<ProtectedRoute><RegisterCompanyPage /></ProtectedRoute>} />
         <Route path="/my-requests" element={<ProtectedRoute><AppLayout><MyRequestsPage /></AppLayout></ProtectedRoute>} />
         <Route path="/saved" element={<ProtectedRoute><AppLayout><SavedCompaniesPage /></AppLayout></ProtectedRoute>} />

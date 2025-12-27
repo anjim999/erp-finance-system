@@ -570,6 +570,145 @@ export async function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_meetings_company ON meetings(company_id);
     `);
 
+    // ============================================
+    // 23. ADDITIONAL MISSING INDEXES
+    // ============================================
+    await pool.query(`
+      -- Enable Trigram Extension
+      CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+      -- Users & Companies
+      CREATE INDEX IF NOT EXISTS idx_users_email_trigram ON users USING gin (email gin_trgm_ops);
+      CREATE INDEX IF NOT EXISTS idx_companies_name_trigram ON companies USING gin (name gin_trgm_ops);
+      
+      -- HR Module
+      CREATE INDEX IF NOT EXISTS idx_departments_manager ON departments(manager_id);
+      CREATE INDEX IF NOT EXISTS idx_leave_requests_company_user ON leave_requests(company_id, user_id);
+      CREATE INDEX IF NOT EXISTS idx_leave_requests_status ON leave_requests(status);
+      CREATE INDEX IF NOT EXISTS idx_holidays_company ON holidays(company_id);
+      
+      -- Inventory Module
+      CREATE INDEX IF NOT EXISTS idx_product_category_company_parent ON product_categories(company_id, parent_id);
+      CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
+      CREATE INDEX IF NOT EXISTS idx_stock_mvmt_company_prod ON stock_movements(company_id, product_id);
+      CREATE INDEX IF NOT EXISTS idx_pos_company_vendor ON purchase_orders(company_id, vendor_id);
+      CREATE INDEX IF NOT EXISTS idx_po_items_po ON purchase_order_items(purchase_order_id);
+      CREATE INDEX IF NOT EXISTS idx_po_items_product ON purchase_order_items(product_id);
+      
+      -- CRM & Projects
+      CREATE INDEX IF NOT EXISTS idx_leads_assigned ON leads(assigned_to);
+      CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
+      CREATE INDEX IF NOT EXISTS idx_lead_activities_lead ON lead_activities(lead_id);
+      CREATE INDEX IF NOT EXISTS idx_projects_manager ON projects(manager_id);
+      CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+      CREATE INDEX IF NOT EXISTS idx_tasks_assigned_status ON tasks(assigned_to, status);
+      CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
+      CREATE INDEX IF NOT EXISTS idx_task_comments_task ON task_comments(task_id);
+      CREATE INDEX IF NOT EXISTS idx_time_logs_context ON time_logs(company_id, task_id, user_id);
+      CREATE INDEX IF NOT EXISTS idx_milestones_project ON milestones(company_id, project_id);
+      
+      -- Finance
+      CREATE INDEX IF NOT EXISTS idx_expenses_company_date ON expenses(company_id, date);
+      CREATE INDEX IF NOT EXISTS idx_expenses_status ON expenses(status);
+      
+      -- Marketplace & Communication
+      CREATE INDEX IF NOT EXISTS idx_saved_companies_customer ON saved_companies(customer_id);
+      CREATE INDEX IF NOT EXISTS idx_conversations_participants ON conversations(company_id, customer_id);
+      CREATE INDEX IF NOT EXISTS idx_meetings_organizer ON meetings(company_id, organizer_id); -- Corrected column name 
+      CREATE INDEX IF NOT EXISTS idx_meeting_participants_meeting ON meeting_participants(meeting_id);
+      CREATE INDEX IF NOT EXISTS idx_documents_lookup ON documents(company_id, entity_type, entity_id);
+    `);
+
+    // ============================================
+    // SUBSCRIPTION SYSTEM TABLES
+    // ============================================
+
+    // Subscription Plans
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS subscription_plans (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(50) NOT NULL UNIQUE,
+        display_name VARCHAR(100) NOT NULL,
+        description TEXT,
+        price_monthly INTEGER NOT NULL DEFAULT 0,
+        price_yearly INTEGER NOT NULL DEFAULT 0,
+        currency VARCHAR(3) DEFAULT 'INR',
+        max_users INTEGER DEFAULT 5,
+        max_storage_gb INTEGER DEFAULT 1,
+        features JSONB DEFAULT '{}',
+        is_active BOOLEAN DEFAULT true,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Insert default plans
+    await pool.query(`
+      INSERT INTO subscription_plans (name, display_name, description, price_monthly, price_yearly, max_users, max_storage_gb, features, sort_order)
+      VALUES 
+        ('free', 'Free', 'Perfect for small teams getting started', 0, 0, 5, 1, 
+         '{"hr": true, "finance": false, "inventory": false, "crm": false, "projects": true, "teams": true, "api": false, "support": "community", "reports": "basic"}', 1),
+        ('starter', 'Starter', 'For growing businesses', 49900, 499000, 15, 5, 
+         '{"hr": true, "finance": true, "inventory": true, "crm": true, "projects": true, "teams": true, "api": false, "support": "email", "reports": "standard"}', 2),
+        ('professional', 'Professional', 'For scaling companies', 149900, 1499000, 50, 25, 
+         '{"hr": true, "finance": true, "inventory": true, "crm": true, "projects": true, "teams": true, "api": true, "support": "priority", "reports": "advanced", "ai_insights": true}', 3),
+        ('enterprise', 'Enterprise', 'For large organizations', 499900, 4999000, -1, 100, 
+         '{"hr": true, "finance": true, "inventory": true, "crm": true, "projects": true, "teams": true, "api": true, "support": "dedicated", "reports": "custom", "ai_insights": true, "white_label": true, "sso": true}', 4)
+      ON CONFLICT (name) DO NOTHING;
+    `);
+
+    // Company Subscriptions
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS company_subscriptions (
+        id SERIAL PRIMARY KEY,
+        company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+        plan_id INTEGER NOT NULL REFERENCES subscription_plans(id),
+        status VARCHAR(20) DEFAULT 'active',
+        billing_cycle VARCHAR(20) DEFAULT 'monthly',
+        start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        end_date TIMESTAMP,
+        trial_end_date TIMESTAMP,
+        cancelled_at TIMESTAMP,
+        razorpay_subscription_id VARCHAR(100),
+        razorpay_customer_id VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(company_id)
+      );
+    `);
+
+    // Subscription Payments
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS subscription_payments (
+        id SERIAL PRIMARY KEY,
+        company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+        subscription_id INTEGER REFERENCES company_subscriptions(id),
+        razorpay_order_id VARCHAR(100),
+        razorpay_payment_id VARCHAR(100),
+        razorpay_signature VARCHAR(255),
+        amount INTEGER NOT NULL,
+        currency VARCHAR(3) DEFAULT 'INR',
+        status VARCHAR(20) DEFAULT 'pending',
+        payment_method VARCHAR(50),
+        invoice_id VARCHAR(100),
+        invoice_url TEXT,
+        notes JSONB DEFAULT '{}',
+        error_message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Add subscription indexes
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_company_subscriptions_company ON company_subscriptions(company_id);
+      CREATE INDEX IF NOT EXISTS idx_company_subscriptions_status ON company_subscriptions(status);
+      CREATE INDEX IF NOT EXISTS idx_subscription_payments_company ON subscription_payments(company_id);
+      CREATE INDEX IF NOT EXISTS idx_subscription_payments_status ON subscription_payments(status);
+      CREATE INDEX IF NOT EXISTS idx_subscription_payments_razorpay ON subscription_payments(razorpay_payment_id);
+    `);
+
     console.log("✅ All migrations completed successfully");
   } catch (err) {
     console.error("❌ Migration error:", err.message);
