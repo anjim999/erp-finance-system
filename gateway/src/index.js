@@ -194,9 +194,12 @@ app.use("/api/auth", authLimiter, express.json(), async (req, res) => {
         // Forward status
         res.status(response.status);
 
-        // Forward response headers
+        // Forward response headers (skip encoding headers since we re-serialize)
+        const skipHeaders = ['content-encoding', 'content-length', 'transfer-encoding'];
         response.headers.forEach((value, key) => {
-            res.setHeader(key, value);
+            if (!skipHeaders.includes(key.toLowerCase())) {
+                res.setHeader(key, value);
+            }
         });
 
         // Forward body
