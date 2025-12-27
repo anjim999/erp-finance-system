@@ -1,11 +1,11 @@
 // src/components/pricing/PlanCard.jsx
-import { FiCheck, FiX, FiLoader, FiZap, FiStar, FiShield, FiCrown } from 'react-icons/fi';
+import { FiCheck, FiX, FiLoader, FiZap, FiStar, FiShield, FiAward } from 'react-icons/fi';
 
 const planIcons = {
     free: FiZap,
     starter: FiStar,
     professional: FiShield,
-    enterprise: FiCrown
+    enterprise: FiAward
 };
 
 const planColors = {
@@ -100,10 +100,10 @@ export default function PlanCard({ plan, billingCycle, currentPlan, processingPl
                     onClick={() => onSelect(plan)}
                     disabled={isCurrentPlan || processingPlan === plan.id}
                     className={`w-full py-3 px-4 rounded-xl font-medium transition-all ${isCurrentPlan
-                            ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                            : isProfessional
-                                ? 'bg-gradient-to-r from-purple-500 to-violet-500 text-white hover:from-purple-600 hover:to-violet-600 shadow-lg shadow-purple-500/25'
-                                : 'bg-gray-700 text-white hover:bg-gray-600'
+                        ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                        : isProfessional
+                            ? 'bg-gradient-to-r from-purple-500 to-violet-500 text-white hover:from-purple-600 hover:to-violet-600 shadow-lg shadow-purple-500/25'
+                            : 'bg-gray-700 text-white hover:bg-gray-600'
                         }`}
                 >
                     {processingPlan === plan.id ? (
