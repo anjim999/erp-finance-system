@@ -27,9 +27,26 @@ import calendarRoutes from './routes/calendar.js';
 import subscriptionRoutes from './routes/subscriptions.js';
 
 // Import middleware
+// Import middleware
 import authMiddleware, { errorHandler } from './middleware/auth.js';
+import helmet from 'helmet';
+import compression from 'compression';
+import { v4 as uuidv4 } from 'uuid';
 
 const app = express();
+
+// 1. Request ID (Extract from Gateway or generate)
+app.use((req, res, next) => {
+    req.id = req.headers['x-request-id'] || uuidv4();
+    res.setHeader('X-Request-Id', req.id);
+    next();
+});
+
+// 2. Security Headers
+app.use(helmet());
+
+// 3. Compression
+app.use(compression());
 
 // ============================================
 // MIDDLEWARE
@@ -56,6 +73,13 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+// Debug middleware - log all requests with ID
+app.use((req, res, next) => {
+    console.log(`[ERP] [${req.id}] ${req.method} ${req.originalUrl}`);
+    next();
+});
+
 app.use(morgan("dev"));
 
 // ============================================

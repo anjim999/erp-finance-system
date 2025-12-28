@@ -17,14 +17,31 @@ import {
     invalidateAllCache
 } from './utils/cacheInvalidation.js';
 
-const app = express();
-
-// Apply global rate limiter to all requests
-app.use(globalLimiter);
-
 // ============================================
 // MIDDLEWARE
 // ============================================
+import helmet from 'helmet';
+import compression from 'compression';
+import { v4 as uuidv4 } from 'uuid';
+
+// ... (keep creating app)
+const app = express();
+
+// 1. Request ID (Must be first to trace everything)
+app.use((req, res, next) => {
+    req.id = uuidv4();
+    res.setHeader('X-Request-Id', req.id);
+    next();
+});
+
+// 2. Security Headers
+app.use(helmet());
+
+// 3. Compression
+app.use(compression());
+
+// Apply global rate limiter to all requests
+app.use(globalLimiter);
 const allowedOrigins = [
     "http://localhost:5173",
     "http://localhost:5174",
@@ -52,7 +69,7 @@ app.use(morgan("dev"));
 
 // Debug middleware - log all requests
 app.use((req, res, next) => {
-    console.log(`[GATEWAY] ${req.method} ${req.originalUrl}`);
+    console.log(`[GATEWAY] [${req.id}] ${req.method} ${req.originalUrl}`);
     next();
 });
 
@@ -84,7 +101,7 @@ const verifyInternalRequest = (req, res, next) => {
 
     // If no secret is configured (development mode), allow the request
     if (!configuredSecret) {
-        console.log('[INTERNAL] ⚠️ INTERNAL_SECRET not configured, allowing request (dev mode)');
+        console.log(`[INTERNAL] [${req.id}] ⚠️ INTERNAL_SECRET not configured, allowing request (dev mode)`);
         return next();
     }
 
@@ -123,15 +140,18 @@ app.post("/api/internal/cache/invalidate/all", verifyInternalRequest, async (req
 // Middleware: Attach User Headers for Microservices
 // ============================================
 const attachUserHeaders = (req, res, next) => {
+    // Always forward the Request ID
+    req.headers['x-request-id'] = req.id;
+
     if (req.user) {
         req.headers['x-user-id'] = String(req.user.userId || '');
         req.headers['x-user-email'] = String(req.user.email || '');
         req.headers['x-user-name'] = String(req.user.name || '');
         req.headers['x-user-role'] = String(req.user.role || '');
         req.headers['x-company-id'] = String(req.user.companyId || '');
-        console.log(`[GATEWAY] Attached headers for user: ${req.user.email} (${req.user.userId})`);
+        console.log(`[GATEWAY] [${req.id}] Attached headers for user: ${req.user.email} (${req.user.userId})`);
     } else {
-        console.log('[GATEWAY] No user found to attach headers');
+        console.log(`[GATEWAY] [${req.id}] No user found to attach headers`);
     }
     next();
 };
@@ -277,7 +297,7 @@ app.use(errorHandler);
 // ============================================
 // START SERVER
 // ============================================
-app.listen(PORT, async () => {
+const server = app.listen(PORT, async () => {
     console.log(`🚀 API Gateway running on port ${PORT}`);
     console.log(`📡 ERP Backend: ${ERP_BACKEND_URL}`);
     console.log(`📡 Teams Backend: ${TEAMS_BACKEND_URL}`);
@@ -290,3 +310,23 @@ app.listen(PORT, async () => {
         console.log('⚠️  Redis caching not configured (UPSTASH_REDIS_REST_URL not set)');
     }
 });
+
+// ============================================
+// GRACEFUL SHUTDOWN
+// ============================================
+const gracefulShutdown = () => {
+    console.log('\n[GATEWAY] Received kill signal, shutting down gracefully...');
+    server.close(() => {
+        console.log('[GATEWAY] Closed out remaining connections.');
+        process.exit(0);
+    });
+
+    // Force close after 10s
+    setTimeout(() => {
+        console.error('[GATEWAY] Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+    }, 10000);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
