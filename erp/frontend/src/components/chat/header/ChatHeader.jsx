@@ -2,6 +2,7 @@
 import { FaVideo, FaPhone, FaUsers, FaSearch, FaEllipsisV, FaTimes, FaTrash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { HeaderButton } from '../common/ChatComponents';
+import { useCall } from '../../../context/CallContext';
 
 export default function ChatHeader({
     selectedChat,
@@ -24,6 +25,17 @@ export default function ChatHeader({
     getCurrentName,
     getCurrentAvatar
 }) {
+    const { callUser } = useCall();
+
+    const handleStartCall = (video = true) => {
+        if (selectedChat) {
+            // 1:1 Call
+            callUser(selectedChat.other_user_id, selectedChat.other_user_name || getCurrentName());
+        } else {
+            toast.info("Group calls coming soon!");
+        }
+    };
+
     return (
         <>
             {/* Header */}
@@ -44,8 +56,8 @@ export default function ChatHeader({
                 <div className="flex items-center gap-1">
                     {!showGeminiChat && (
                         <>
-                            <HeaderButton icon={<FaVideo />} label="Meet" onClick={() => handleComingSoon('Video Meeting')} />
-                            <HeaderButton icon={<FaPhone />} label="Call" onClick={() => handleComingSoon('Voice Call')} />
+                            <HeaderButton icon={<FaVideo />} label="Meet" onClick={() => handleStartCall(true)} />
+                            <HeaderButton icon={<FaPhone />} label="Call" onClick={() => handleStartCall(false)} />
                             <HeaderButton icon={<FaUsers />} label={`${selectedChannel?.member_count || selectedTeam?.member_count || '0'}`} onClick={() => { }} />
                         </>
                     )}

@@ -7,6 +7,8 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { TeamsNotificationProvider } from "./context/TeamsNotificationContext";
+import { CallProvider } from "./context/CallContext";
+import CallModal from "./components/chat/modals/CallModal";
 import { TeamsNotificationWrapper } from "./components/teams";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -15,8 +17,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <TeamsNotificationProvider>
-            <App />
-            <TeamsNotificationWrapper />
+            <CallProvider>
+              <App />
+              <TeamsNotificationWrapper />
+              <CallModal />
+            </CallProvider>
           </TeamsNotificationProvider>
         </AuthProvider>
       </BrowserRouter>

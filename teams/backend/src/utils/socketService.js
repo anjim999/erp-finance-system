@@ -78,6 +78,62 @@ export function initializeSocket(server) {
         socket.on('notification:read-all', async () => {
             // Will be handled by notification route
         });
+        // Handle receive message (if client emits it directly, though usually via API)
+        socket.on('chat:message', (data) => {
+            // Logic to forward message if needed, but we use API for persistence
+        });
+
+        // ============================================
+        // WEBRTC SIGNALING (1:1 & MESH GROUP CALLS)
+        // ============================================
+
+        socket.on("call-user", ({ userToCall, signalData, from, name }) => {
+            io.to(`user:${userToCall}`).emit("call-made", {
+                signal: signalData,
+                from,
+                name
+            });
+        });
+
+        socket.on("answer-call", ({ signal, to }) => {
+            io.to(`user:${to}`).emit("call-answered", {
+                signal,
+                from: userId
+            });
+        });
+
+        socket.on("ice-candidate", ({ target, candidate }) => {
+            io.to(`user:${target}`).emit("ice-candidate", {
+                candidate,
+                from: userId
+            });
+        });
+
+        socket.on("end-call", ({ to }) => {
+            if (to) {
+                io.to(`user:${to}`).emit("end-call", { from: userId });
+            }
+        });
+
+        // ============================================
+        // GROUP CALL ROOMS
+        // ============================================
+
+        socket.on("join-call-room", (roomId) => {
+            socket.join(`call:${roomId}`);
+            // Notify others in room that a user connected (so they can initiate P2P)
+            socket.to(`call:${roomId}`).emit("user-connected-to-call", { userId, name: socket.userName || 'User' });
+
+            // Send back list of users in room? 
+            // In Mesh, the new user waits for offers, OR initiates offers to everyone.
+            // Simpler: Existing users call the new user.
+        });
+
+        socket.on("leave-call-room", (roomId) => {
+            socket.leave(`call:${roomId}`);
+            socket.to(`call:${roomId}`).emit("user-left-call", { userId });
+        });
+
     });
 
     return io;
