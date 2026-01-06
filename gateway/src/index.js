@@ -228,7 +228,7 @@ app.use("/api/auth", authLimiter, express.json(), async (req, res) => {
 
     } catch (error) {
         console.error('[GATEWAY] Auth Proxy Error:', error);
-        res.status(502).json({ message: 'Auth Service Unavailable' });
+        res.status(502).json({ message: error });
     }
 });
 
